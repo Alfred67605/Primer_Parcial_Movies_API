@@ -1,14 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { ObjectLiteral, Repository } from 'typeorm';
-import { NotFoundException } from '@nestjs/common';
+import { MoreThanOrEqual, ObjectLiteral, Repository } from 'typeorm';
 import { MoviesService } from './movies.service';
 import { Movie } from './entities/movie.entity';
 import { Genre } from './entities/movie.entity';
 import { CreateMovieDto } from './dto/create-movie.dto';
-import { UpdateMovieDto } from './dto/update-movie.dto';
 
-type MockRepository<T extends ObjectLiteral = any> = Partial<Record<keyof Repository<T>, jest.Mock>>;
+type MockRepository<T extends ObjectLiteral = any> = Partial<
+  Record<keyof Repository<T>, jest.Mock>
+>;
 
 const createMockRepository = <T extends ObjectLiteral = any>(): MockRepository<T> => ({
   create: jest.fn(),
@@ -64,5 +64,55 @@ describe('MoviesService', () => {
     expect(service).toBeDefined();
   });
 
-  // Aquí las pruebas
+  describe('search()', () => {
+    it('B1: search() sin filtros debe llamar a repository.find con where vacío y retornar todas las películas', async () => {
+      repository.find!.mockResolvedValue([mockMovie]);
+      const result = await service.search({});
+      expect(repository.find).toHaveBeenCalledWith({ where: {} });
+      expect(result).toEqual([mockMovie]);
+    });
+
+    it('B2: search({ genre: "drama" }) debe llamar a repository.find con where: { genre: "drama" }', async () => {
+      repository.find!.mockResolvedValue([]);
+      await service.search({ genre: Genre.DRAMA });
+      expect(repository.find).toHaveBeenCalledWith({
+        where: { genre: Genre.DRAMA },
+      });
+    });
+
+    it('B3: search({ year: 2010 }) debe llamar a repository.find con where: { year: 2010 }', async () => {
+      repository.find!.mockResolvedValue([]);
+      await service.search({ year: 2010 });
+      expect(repository.find).toHaveBeenCalledWith({
+        where: { year: 2010 },
+      });
+    });
+
+    it('B4: search({ minRating: 8.0 }) debe llamar a repository.find con where: { rating: MoreThanOrEqual(8.0) }', async () => {
+      repository.find!.mockResolvedValue([]);
+      await service.search({ minRating: 8.0 });
+      expect(repository.find).toHaveBeenCalledWith({
+        where: { rating: MoreThanOrEqual(8.0) },
+      });
+    });
+
+    it('B5: search({ genre, year, minRating }) debe combinar los tres filtros en el where', async () => {
+      repository.find!.mockResolvedValue([]);
+      const filters = { genre: Genre.ACTION, year: 2020, minRating: 7.5 };
+      await service.search(filters);
+      expect(repository.find).toHaveBeenCalledWith({
+        where: {
+          genre: Genre.ACTION,
+          year: 2020,
+          rating: MoreThanOrEqual(7.5),
+        },
+      });
+    });
+
+    it('B6: search() debe retornar un array vacío si el repositorio no encuentra coincidencias', async () => {
+      repository.find!.mockResolvedValue([]);
+      const result = await service.search({ genre: Genre.HORROR });
+      expect(result).toEqual([]);
+    });
+  });
 });
