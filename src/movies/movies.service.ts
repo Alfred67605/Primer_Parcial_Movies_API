@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { MoreThanOrEqual, Repository } from 'typeorm';
 import { Movie } from './entities/movie.entity';
 import { CreateMovieDto } from './dto/create-movie.dto';
 import { UpdateMovieDto } from './dto/update-movie.dto';
+import { SearchMoviesDto } from './dto/search-movies.dto';
 
 @Injectable()
 export class MoviesService {
@@ -19,6 +20,25 @@ export class MoviesService {
 
   async findAll(): Promise<Movie[]> {
     return this.movieRepository.find();
+  }
+
+  async search(filters: SearchMoviesDto): Promise<Movie[]> {
+    const { genre, year, minRating } = filters;
+    const where: any = {};
+
+    if (genre) {
+      where.genre = genre;
+    }
+
+    if (year) {
+      where.year = year;
+    }
+
+    if (minRating) {
+      where.rating = MoreThanOrEqual(minRating);
+    }
+
+    return this.movieRepository.find({ where });
   }
 
   async findOne(id: string): Promise<Movie> {

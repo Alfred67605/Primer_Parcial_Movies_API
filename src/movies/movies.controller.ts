@@ -9,16 +9,13 @@ import {
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
+  Query,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiParam,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { MoviesService } from './movies.service';
 import { CreateMovieDto } from './dto/create-movie.dto';
 import { UpdateMovieDto } from './dto/update-movie.dto';
+import { SearchMoviesDto } from './dto/search-movies.dto';
 import { Movie } from './entities/movie.entity';
 
 @ApiTags('movies')
@@ -39,6 +36,17 @@ export class MoviesController {
   @ApiResponse({ status: 200, description: 'Lista de películas', type: [Movie] })
   findAll(): Promise<Movie[]> {
     return this.moviesService.findAll();
+  }
+
+  @Get('search')
+  @ApiOperation({ summary: 'Buscar películas aplicando filtros opcionales' })
+  @ApiQuery({ name: 'genre', required: false, description: 'Género de la película' })
+  @ApiQuery({ name: 'year', required: false, description: 'Año de estreno' })
+  @ApiQuery({ name: 'minRating', required: false, description: 'Calificación mínima' })
+  @ApiResponse({ status: 200, description: 'Lista de películas filtradas', type: [Movie] })
+  @ApiResponse({ status: 422, description: 'Error de validación de parámetros' })
+  search(@Query() filters: SearchMoviesDto): Promise<Movie[]> {
+    return this.moviesService.search(filters);
   }
 
   @Get(':id')
